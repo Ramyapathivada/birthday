@@ -88,29 +88,34 @@
             }
         }
 
-        /* Styles for the Gemini API integration */
-        .gemini-section {
+        /* Styles for the message generation section */
+        .message-generation-section {
             margin-top: 2.5rem;
             padding-top: 1.5rem;
             border-top: 1px solid #e0e0e0;
             text-align: left; /* Align text within this section to left */
         }
-        .gemini-section label {
+        .message-generation-section label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: #333;
         }
-        .gemini-section textarea {
+        .message-generation-section input[type="text"],
+        .message-generation-section textarea {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ccc;
             border-radius: 0.5rem;
-            min-height: 80px;
+            min-height: 40px; /* For input */
             resize: vertical;
             font-size: 1rem;
+            margin-bottom: 1rem; /* Spacing between inputs */
         }
-        .gemini-section button {
+        .message-generation-section textarea {
+            min-height: 80px;
+        }
+        .message-generation-section button {
             background: linear-gradient(45deg, #f06292, #e91e63); /* Pink gradient button */
             color: white;
             padding: 0.75rem 1.5rem;
@@ -119,15 +124,22 @@
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
-            margin-top: 1rem;
+            margin-top: 0.5rem; /* Adjusted for input fields */
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 4px 10px rgba(233, 30, 99, 0.3);
         }
-        .gemini-section button:hover {
+        .message-generation-section button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(233, 30, 99, 0.4);
         }
-        .generated-message {
+        .message-generation-section button#resetButton {
+            background: linear-gradient(45deg, #607d8b, #455a64); /* Grey gradient for reset */
+            margin-left: 1rem;
+        }
+        .message-generation-section button#resetButton:hover {
+            box-shadow: 0 6px 15px rgba(69, 90, 100, 0.4);
+        }
+        .generated-message-output { /* Renamed from .generated-message to avoid conflict with default message style */
             margin-top: 1.5rem;
             padding: 1rem;
             background-color: #f9f9f9;
@@ -140,12 +152,6 @@
             align-items: center;
             justify-content: center;
             text-align: center; /* Center the generated text */
-        }
-        .loading-indicator {
-            display: none; /* Hidden by default */
-            margin-top: 1rem;
-            font-style: italic;
-            color: #e91e63;
         }
     </style>
 </head>
@@ -170,75 +176,130 @@
     <div class="confetti" style="left: 85%; animation-delay: 0.6s; width: 10px; height: 10px;"></div>
 
     <div class="card-container">
-        <h1 class="header-text">🥳 Happy Birthday, Ramya🎂</h1>
-        <p class="message-text" id="default-message">
+        <h1 class="header-text" id="birthdayHeader">🥳 Happy Birthday!🎂</h1>
+        <p class="message-text" id="defaultMessage">
             Wishing you a day filled with joy, laughter, and all the things that make you happy!
             May your year ahead be even brighter than the last, full of exciting adventures,
             wonderful memories, and success in everything you do.
             <br><br>
             You are an amazing person, and we hope you have the most fantastic birthday ever!
         </p>
-        <p class="signature-text">With love and best wishes,<br> [Your Name/Group Name]</p>
+        <p class="generated-message-output" id="generatedMessageOutput" style="display: none;">Your personalized message will appear here!</p>
+        <p class="signature-text">With love and best wishes,<br> <span id="signatureName">[Your Name/Group Name]</span></p>
 
-        <!-- Gemini API Integration Section -->
-        <div class="gemini-section">
-            <label for="birthdayPersonDesc">✨ Get a Personalized Message! ✨</label>
-            <textarea id="birthdayPersonDesc" placeholder="Tell me about the birthday person (e.g., 'my best friend who loves hiking and cats', 'my dad who is a great cook and loves history'). Also, mention your relationship to them."></textarea>
-            <button id="generateMessageBtn">✨ Generate Message ✨</button>
-            <div id="loadingIndicator" class="loading-indicator">Generating your message...</div>
-            <div id="generatedMessageOutput" class="generated-message">Your personalized message will appear here!</div>
+        <!-- Message Generation Section -->
+        <div class="message-generation-section">
+            <label for="birthdayPersonName">To:</label>
+            <input type="text" id="birthdayPersonName" placeholder="Enter birthday person's name (e.g., Ramya)">
+
+            <label for="birthdayPersonDesc">✍️ Craft Your Personalized Message! ✍️</label>
+            <textarea id="birthdayPersonDesc" placeholder="Tell me about the birthday person (e.g., 'my best friend who loves hiking and cats', 'my dad who is a great cook and loves history'). These details will be included in the message."></textarea>
+            
+            <label for="senderName">Your Name:</label>
+            <input type="text" id="senderName" placeholder="Your Name/Group Name">
+
+            <button id="craftMessageBtn">✍️ Craft My Message! ✍️</button>
+            <button id="resetButton">Reset</button>
         </div>
     </div>
 
     <script>
-        document.getElementById('generateMessageBtn').addEventListener('click', async () => {
-            const description = document.getElementById('birthdayPersonDesc').value;
-            const generatedMessageOutput = document.getElementById('generatedMessageOutput');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const defaultMessage = document.getElementById('default-message');
+        const birthdayHeader = document.getElementById('birthdayHeader');
+        const defaultMessage = document.getElementById('defaultMessage');
+        const generatedMessageOutput = document.getElementById('generatedMessageOutput');
+        const birthdayPersonNameInput = document.getElementById('birthdayPersonName');
+        const birthdayPersonDescInput = document.getElementById('birthdayPersonDesc');
+        const senderNameInput = document.getElementById('senderName');
+        const craftMessageBtn = document.getElementById('craftMessageBtn');
+        const resetButton = document.getElementById('resetButton');
+        const signatureNameSpan = document.getElementById('signatureName');
 
-            if (!description.trim()) {
-                generatedMessageOutput.textContent = "Please provide some description to generate a message.";
+        /**
+         * Updates the main birthday header with the name entered by the user.
+         */
+        function updateHeader() {
+            const name = birthdayPersonNameInput.value.trim();
+            if (name) {
+                birthdayHeader.innerHTML = `🥳 Happy Birthday, Ramya🎂`;
+            } else {
+                birthdayHeader.innerHTML = `🥳 Happy Birthday!🎂`;
+            }
+        }
+
+        /**
+         * Updates the signature at the bottom of the card with the sender's name.
+         */
+        function updateSignature() {
+            const name = senderNameInput.value.trim();
+            if (name) {
+                signatureNameSpan.textContent = name;
+            } else {
+                signatureNameSpan.textContent = '[Your Name/Group Name]';
+            }
+        }
+
+        /**
+         * Resets the card to its initial default state, clearing inputs and showing the default message.
+         */
+        function resetCard() {
+            birthdayPersonNameInput.value = '';
+            birthdayPersonDescInput.value = '';
+            senderNameInput.value = '';
+            updateHeader(); // Reset header to default
+            updateSignature(); // Reset signature to default
+            defaultMessage.style.display = 'block';
+            generatedMessageOutput.style.display = 'none';
+            generatedMessageOutput.textContent = "Your personalized message will appear here!";
+        }
+
+        /**
+         * Crafts a personalized birthday message based on user inputs.
+         * This function no longer uses an API and generates the message client-side.
+         */
+        function craftPersonalizedMessage() {
+            const birthdayPersonName = birthdayPersonNameInput.value.trim();
+            const description = birthdayPersonDescInput.value.trim();
+            const senderName = senderNameInput.value.trim();
+
+            if (!birthdayPersonName) {
+                generatedMessageOutput.textContent = "Please enter the birthday person's name.";
+                generatedMessageOutput.style.display = 'block';
+                defaultMessage.style.display = 'none';
                 return;
             }
 
-            loadingIndicator.style.display = 'block'; // Show loading indicator
-            generatedMessageOutput.textContent = ''; // Clear previous message
-            defaultMessage.style.display = 'none'; // Hide default message when generating
+            let message = `Happy Birthday, ${birthdayPersonName}!`;
 
-            const prompt = `Generate a personalized birthday wish for someone based on the following description: "${description}". Keep it warm, friendly, and suitable for a general audience. The message should be around 50-70 words.`;
-
-            let chatHistory = [];
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // Leave this as-is; Canvas will provide the key
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    generatedMessageOutput.textContent = text;
-                } else {
-                    generatedMessageOutput.textContent = "Could not generate a message. Please try again.";
-                }
-            } catch (error) {
-                console.error('Error calling Gemini API:', error);
-                generatedMessageOutput.textContent = "An error occurred while generating the message. Please try again.";
-            } finally {
-                loadingIndicator.style.display = 'none'; // Hide loading indicator
+            if (description) {
+                // Incorporate the description into the message
+                message += ` Wishing you a truly special day filled with joy and celebration. We know you're someone who ${description.toLowerCase()}. May your year ahead be filled with even more of what you love, new adventures, and wonderful memories.`;
+            } else {
+                // Fallback if no description is provided
+                message += ` Wishing you a day filled with joy, laughter, and all the things that make you happy! May your year ahead be even brighter than the last, full of exciting adventures, wonderful memories, and success in everything you do.`;
             }
-        });
+            
+            message += ` You are an amazing person, and we hope you have the most fantastic birthday ever!`;
+
+            generatedMessageOutput.textContent = message;
+            generatedMessageOutput.style.display = 'block'; // Show crafted message
+            defaultMessage.style.display = 'none'; // Hide default message
+        }
+
+        /**
+         * Initializes event listeners for buttons and input fields.
+         */
+        function init() {
+            craftMessageBtn.addEventListener('click', craftPersonalizedMessage);
+            resetButton.addEventListener('click', resetCard);
+            birthdayPersonNameInput.addEventListener('input', updateHeader);
+            senderNameInput.addEventListener('input', updateSignature);
+
+            // Initial setup on load to ensure default state is correctly displayed
+            resetCard(); 
+        }
+
+        // Ensure the DOM is fully loaded before running initialization script
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
