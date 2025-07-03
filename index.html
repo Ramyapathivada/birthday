@@ -196,7 +196,7 @@
             <textarea id="birthdayPersonDesc" placeholder="Tell me about the birthday person (e.g., 'my best friend who loves hiking and cats', 'my dad who is a great cook and loves history'). These details will be included in the message."></textarea>
             
             <label for="senderName">Your Name:</label>
-            <input type="text" id="senderName" placeholder="Your Name/Group Name">
+            <input type="text" id="senderName" placeholder="Well wisher">
 
             <button id="craftMessageBtn">✍️ Craft My Message! ✍️</button>
             <button id="resetButton">Reset</button>
@@ -220,7 +220,7 @@
         function updateHeader() {
             const name = birthdayPersonNameInput.value.trim();
             if (name) {
-                birthdayHeader.innerHTML = `🥳 Happy Birthday, Ramya🎂`;
+                birthdayHeader.innerHTML = `🥳 Happy Birthday Ramya🎂`;
             } else {
                 birthdayHeader.innerHTML = `🥳 Happy Birthday!🎂`;
             }
@@ -234,7 +234,7 @@
             if (name) {
                 signatureNameSpan.textContent = name;
             } else {
-                signatureNameSpan.textContent = '[Your Name/Group Name]';
+                signatureNameSpan.textContent = 'Well wisher';
             }
         }
 
