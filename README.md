@@ -170,7 +170,7 @@
     <div class="confetti" style="left: 85%; animation-delay: 0.6s; width: 10px; height: 10px;"></div>
 
     <div class="card-container">
-        <h1 class="header-text">🥳 Happy Birthday, Siva Krishna 🎂</h1>
+        <h1 class="header-text">🥳 Happy Birthday, Ramya🎂</h1>
         <p class="message-text" id="default-message">
             Wishing you a day filled with joy, laughter, and all the things that make you happy!
             May your year ahead be even brighter than the last, full of exciting adventures,
